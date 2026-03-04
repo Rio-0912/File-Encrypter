@@ -1,37 +1,52 @@
 pipeline {
     agent any
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
         stage('Build') {
             steps {
-                sh 'echo Building Java project...'
-                sh 'javac -d build src/Cryptoalgo.java src/Main.java'
-                sh 'echo Build successful'
+                sh '''
+                echo "Building Java project..."
+                echo "Listing workspace contents:"
+                ls
+                cd "Password Protection"
+                mkdir -p build
+                javac -d build src/*.java
+                echo "Build successful"
+                '''
             }
         }
         stage('Test') {
             steps {
-                sh 'echo Running JUnit tests for File-Encrypter...'
-                sh 'curl -L -o junit-platform-console-standalone.jar https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.10.0/junit-platform-console-standalone-1.10.0.jar'
-                sh 'java -jar junit-platform-console-standalone.jar --class-path build --scan-classpath'
+                sh '''
+                echo "Running JUnit tests for File-Encrypter..."
+                cd "Password Protection"
+                if [ ! -f junit-platform-console-standalone.jar ]; then
+                    echo "Downloading JUnit..."
+                    curl -Lo junit-platform-console-standalone.jar https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.10.0/junit-platform-console-standalone-1.10.0.jar
+                fi
+                mkdir -p test-build
+                javac -cp junit-platform-console-standalone.jar:build -d test-build test/*.java
+                java -jar junit-platform-console-standalone.jar --class-path build:test-build --scan-class-path
+                echo "JUnit tests executed successfully"
+                '''
             }
         }
         stage('Deploy') {
             steps {
-                sh 'echo Deploying...'
+                sh '''
+                echo "Deploying (Packaging) File-Encrypter Application..."
+                cd "Password Protection"
+                jar cf FileEncrypter.jar -C build .
+                echo "Deployment successful Artifact ready"
+                '''
             }
         }
     }
     post {
-        always {
-            echo 'Cleaning up...'
+        success {
+            echo "Pipeline executed successfully!"
         }
         failure {
-            echo 'Pipeline failed!'
+            echo "Pipeline failed!"
         }
     }
 }

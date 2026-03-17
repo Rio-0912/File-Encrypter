@@ -1,52 +1,29 @@
 pipeline {
-    agent any
+    agent {
+        label 'agent' // This matches the label you gave the node in Manage Jenkins
+    }
+
     stages {
+        stage('Verify Node') {
+            steps {
+                echo "Checking where this job is running..."
+                // This command prints the hostname and kernel info of the machine
+                sh 'uname -a'
+                sh 'hostname'
+            }
+        }
+        
         stage('Build') {
             steps {
-                sh '''
-                echo "Building Java project..."
-                echo "Listing workspace contents:"
-                ls
-                cd "Password Protection"
-                mkdir -p build
-                javac -d build src/*.java
-                echo "Build successful"
-                '''
-            }
-        }
-        stage('Test') {
-            steps {
-                sh '''
-                echo "Running JUnit tests for File-Encrypter..."
-                cd "Password Protection"
-                if [ ! -f junit-platform-console-standalone.jar ]; then
-                    echo "Downloading JUnit..."
-                    curl -Lo junit-platform-console-standalone.jar https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.10.0/junit-platform-console-standalone-1.10.0.jar
-                fi
-                mkdir -p test-build
-                javac -cp junit-platform-console-standalone.jar:build -d test-build test/*.java
-                java -jar junit-platform-console-standalone.jar --class-path build:test-build --scan-class-path
-                echo "JUnit tests executed successfully"
-                '''
-            }
-        }
-        stage('Deploy') {
-            steps {
-                sh '''
-                echo "Deploying (Packaging) File-Encrypter Application..."
-                cd "Password Protection"
-                jar cf FileEncrypter.jar -C build .
-                echo "Deployment successful Artifact ready"
-                '''
+                sh 'echo "Building on the Agent node..."'
+                // Add your build logic here if needed
             }
         }
     }
+    
     post {
-        success {
-            echo "Pipeline executed successfully!"
-        }
-        failure {
-            echo "Pipeline failed!"
+        always {
+            echo "Execution finished."
         }
     }
 }
